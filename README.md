@@ -1,46 +1,106 @@
-# Getting Started with Create React App
+# Mickey Mouse Darts Game
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A beautiful and intuitive darts game with a Mickey Mouse theme. This web application allows multiple players to play darts together, keeping track of scores and game history.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Beautiful Mickey Mouse Theme**: Enjoy a fun and visually appealing Mickey Mouse themed darts game.
+- **Multiple Players**: Add as many players as you want to join the game.
+- **Real-time Score Tracking**: Keep track of scores in real-time.
+- **Game History**: View past games and player statistics.
+- **Share Links**: Share a link with friends to join your game session.
+- **Mobile Friendly**: Play on any device with a responsive design.
+- **No Login Required**: Start playing immediately without creating an account.
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### Prerequisites
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- Node.js (v14 or higher)
+- npm or yarn
+- Firebase account
 
-### `npm test`
+### Installation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/mickey-mouse-darts.git
+   cd mickey-mouse-darts
+   ```
 
-### `npm run build`
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+3. Create a Firebase project:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project
+   - Set up Firestore database
+   - Register a web app in your Firebase project
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+4. Configure environment variables:
+   - Copy the `.env.example` file to create a new `.env` file:
+     ```
+     cp .env.example .env
+     ```
+   - Edit the `.env` file and add your Firebase configuration:
+     ```
+     REACT_APP_FIREBASE_API_KEY=your-api-key
+     REACT_APP_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+     REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+     REACT_APP_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+     REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+     REACT_APP_FIREBASE_APP_ID=your-app-id
+     ```
+   - Note: The `.env` file contains sensitive information and is excluded from version control in the `.gitignore` file.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+5. Start the development server:
+   ```
+   npm start
+   ```
 
-### `npm run eject`
+6. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### Deployment
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Build the application:
+   ```
+   npm run build
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+2. Deploy to Firebase:
+   ```
+   npm install -g firebase-tools
+   firebase login
+   firebase init
+   firebase deploy
+   ```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## How to Play
 
-## Learn More
+1. Start a new game by clicking "Start New Game" on the home page.
+2. Add players by entering their names.
+3. Click "Start Game" to begin.
+4. Each player takes turns throwing darts and scoring points.
+5. Click on the score buttons to record points for the current player.
+6. The game automatically moves to the next player after each turn.
+7. End the game to see the winner and update the leaderboard.
+8. Share the game link with friends to let them join your session.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Technologies Used
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- React
+- TypeScript
+- Firebase (Firestore)
+- Styled Components
+- React Router
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Mickey Mouse is a trademark of The Walt Disney Company.
+- This project is for educational purposes only.
