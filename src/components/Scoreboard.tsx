@@ -9,10 +9,12 @@ interface ScoreboardProps {
 
 const ScoreboardContainer = styled.div`
   background-color: ${props => props.theme.colors.white};
-  border-radius: ${props => props.theme.borderRadius.large};
-  padding: ${props => props.theme.spacing.lg};
-  box-shadow: ${props => props.theme.shadows.medium};
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
   overflow-x: auto;
+  width: 100%;
 `;
 
 const ScoreTable = styled.table`
@@ -21,7 +23,7 @@ const ScoreTable = styled.table`
 `;
 
 const TableHeader = styled.th`
-  padding: ${props => props.theme.spacing.md};
+  padding: 8px;
   text-align: left;
   border-bottom: 2px solid ${props => props.theme.colors.border};
   color: #444444;
@@ -37,7 +39,7 @@ const TableRow = styled.tr<{ $isActive?: boolean }>`
 `;
 
 const TableCell = styled.td`
-  padding: ${props => props.theme.spacing.md};
+  padding: 8px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
 `;
 

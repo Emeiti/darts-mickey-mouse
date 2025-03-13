@@ -23,13 +23,13 @@ const BoardContainer = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+  margin: 0;
+  padding: 0;
   background-color: ${props => props.theme.colors.white};
-  border-radius: ${props => props.theme.borderRadius.large};
-  box-shadow: ${props => props.theme.shadows.medium};
   overflow: hidden;
   border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 0;
+  box-shadow: none;
 `;
 
 const PlayerHeader = styled.div`
@@ -126,7 +126,7 @@ const Cell = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 50px;
+  height: 40px;
   border-bottom: 1px solid ${props => props.theme.colors.border};
   font-size: 1.2rem;
 `;
@@ -136,13 +136,14 @@ const ScoreCell = styled(Cell)`
   font-size: 1.3rem;
   color: ${props => props.theme.colors.white};
   background-color: ${props => props.theme.colors.multiplier};
+  height: 40px;
 `;
 
 const NumberCell = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 50px;
+  height: 40px;
   font-weight: bold;
   color: ${props => props.theme.colors.white};
   background-color: ${props => props.theme.colors.multiplier};
@@ -379,7 +380,13 @@ const MickeyMouseBoard: React.FC<MickeyMouseBoardProps> = ({
   const [selectionMode, setSelectionMode] = useState<null | 'double' | 'triple'>(null);
   
   // Define the complete set of numbers including D and T
-  const completeTargetNumbers = ['D', 'T', 'B', ...targetNumbers];
+  const completeTargetNumbers = ['D', 'T', 'B', ...targetNumbers.filter(num => num !== 'B')];
+  
+  // Log the target numbers for debugging
+  useEffect(() => {
+    console.log("Target numbers:", targetNumbers);
+    console.log("Complete target numbers:", completeTargetNumbers);
+  }, [targetNumbers, completeTargetNumbers]);
   
   // Create a safe version of players with initialized marks
   const safetyPlayers = players.map(player => {
@@ -769,7 +776,7 @@ const MickeyMouseBoard: React.FC<MickeyMouseBoardProps> = ({
           >
             {completeTargetNumbers.map(number => (
               <MarkCell 
-                key={`left-${player.id}-${number}`}
+                key={`mark-cell-${player.id}-${number}`}
                 $isActive={playerIndex === currentPlayerIndex}
                 $isClosedByPlayer={player.marks[number] === 3}
                 $isClosedByAll={isNumberClosedByAll(number)}
@@ -789,7 +796,7 @@ const MickeyMouseBoard: React.FC<MickeyMouseBoardProps> = ({
         <TargetsColumn>
           {completeTargetNumbers.map(number => (
             <NumberCell 
-              key={`number-${number}`}
+              key={`target-number-${number}`}
               style={{
                 textDecoration: isNumberClosedByAll(number) ? 'line-through' : 'none'
               }}

@@ -15,7 +15,10 @@ import Button from '../components/Button';
 const GameContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${props => props.theme.spacing.xl};
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
 `;
 
 const Title = styled.h1`
@@ -98,29 +101,6 @@ const PlayersContainer = styled.div`
   }
 `;
 
-const GameInfo = styled.div`
-  background-color: ${props => props.theme.colors.white};
-  border-radius: ${props => props.theme.borderRadius.large};
-  padding: ${props => props.theme.spacing.lg};
-  box-shadow: ${props => props.theme.shadows.medium};
-  text-align: center;
-  color: ${props => props.theme.colors.black};
-  
-  @media (max-width: 768px) {
-    padding: ${props => props.theme.spacing.md};
-  }
-  
-  h2 {
-    color: ${props => props.theme.colors.primary};
-    margin-bottom: ${props => props.theme.spacing.md};
-  }
-  
-  p {
-    font-size: 1.1rem;
-    margin-bottom: ${props => props.theme.spacing.sm};
-  }
-`;
-
 const LoadingMessage = styled.p`
   text-align: center;
   font-size: ${props => props.theme.fontSizes.large};
@@ -180,7 +160,12 @@ const GamePage: FC = () => {
   // Initialize a player with empty marks for all target numbers
   const initializePlayerMarks = () => {
     const marks: { [key: string]: number } = {};
-    MICKEY_MOUSE_NUMBERS.forEach(number => {
+    // Add D, T, and B
+    marks['D'] = 0;
+    marks['T'] = 0;
+    marks['B'] = 0;
+    // Add the numeric targets
+    MICKEY_MOUSE_NUMBERS.filter(num => num !== 'B').forEach(number => {
       marks[number] = 0;
     });
     return marks;
@@ -205,17 +190,21 @@ const GamePage: FC = () => {
     const playersBeforeSwitch = [...players];
     const currentPlayerBeforeSwitch = currentPlayerIndex;
     
+    // CRITICAL FIX: Log the exact score values we're working with
+    const stateScore = playersBeforeSwitch[currentPlayerBeforeSwitch]?.score || 0;
+    const overrideScore = finalScoreOverride !== undefined ? finalScoreOverride : stateScore;
+    
     // Retrieve and log the exact score to confirm what we're working with
     // Use finalScoreOverride if provided, otherwise use the state value
-    const currentPlayerScore = finalScoreOverride !== undefined 
-      ? finalScoreOverride 
-      : playersBeforeSwitch[currentPlayerBeforeSwitch]?.score || 0;
+    const currentPlayerScore = overrideScore;
     
     console.log("🔄 PLAYER SWITCH: Moving to next player", { 
       currentPlayerIndex, 
       nextPlayerIndex: (currentPlayerIndex + 1) % players.length,
       currentPlayerName: players[currentPlayerIndex]?.name,
       nextPlayerName: players[(currentPlayerIndex + 1) % players.length]?.name,
+      stateScore,
+      overrideScore,
       finalCurrentPlayerScore: currentPlayerScore,
       usingOverrideScore: finalScoreOverride !== undefined,
       playerScoresBeforeSwitch: playersBeforeSwitch.map(p => `${p.name}: ${p.score}`).join(', ')
@@ -224,11 +213,8 @@ const GamePage: FC = () => {
     const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
     
     // Create a deep copy of the players array to avoid state mutation issues
-    const updatedPlayers = players.map(player => ({
-      ...player,
-      marks: { ...(player.marks || {}) },
-      closedNumbers: [...(player.closedNumbers || [])]
-    }));
+    // CRITICAL FIX: Use JSON.parse(JSON.stringify()) for a true deep copy
+    const updatedPlayers = JSON.parse(JSON.stringify(players)) as Player[];
     
     // CRITICAL: Ensure we preserve the final score of the current player
     if (currentPlayerBeforeSwitch >= 0 && currentPlayerBeforeSwitch < updatedPlayers.length) {
@@ -267,9 +253,13 @@ const GamePage: FC = () => {
       currentTurn: p.currentTurn,
     })));
     
-    // Update local state first
-    setPlayers(updatedPlayers);
-    setCurrentPlayerIndex(nextPlayerIndex);
+    // CRITICAL FIX: Update local state first and wait for it to complete
+    await new Promise<void>(resolve => {
+      setPlayers(updatedPlayers);
+      setCurrentPlayerIndex(nextPlayerIndex);
+      // Use a small timeout to ensure state updates are processed
+      setTimeout(resolve, 50);
+    });
     
     // Update game in Firestore
     try {
@@ -502,6 +492,11 @@ const GamePage: FC = () => {
       currentPlayer.marks[targetNumber] = 0;
     }
     
+    // Update marks for the target number - ensure we don't exceed 3 marks
+    const newMarks = Math.min(currentMarks + multiplier, 3);
+    console.log(`Updating marks for ${targetNumber} from ${currentMarks} to ${newMarks}`);
+    currentPlayer.marks[targetNumber] = newMarks;
+    
     // Convert number to numeric value for scoring
     let pointValue = 0;
     if (targetNumber === 'B') {
@@ -525,6 +520,12 @@ const GamePage: FC = () => {
     } else {
       pointValue = parseInt(targetNumber, 10);
     }
+    
+    // CRITICAL FIX: Calculate and log the score before any async operations
+    // This ensures we have a clear record of the score calculation
+    const initialScore = currentPlayer.score || 0;
+    let scoreAdded = 0;
+    let finalScore = initialScore;
     
     // Record the dart throw in Firestore
     try {
@@ -616,7 +617,6 @@ const GamePage: FC = () => {
           
           // Calculate scoring based on the updated target statuses
           // Case 1: Player has already closed this number
-          const initialScore = currentPlayer.score || 0;
           if (currentHits >= 3) {
             // If the number is not closed by all players, player scores points
             if (!targetStatus.isClosedByAll) {
@@ -625,8 +625,10 @@ const GamePage: FC = () => {
               const pointsToAdd = number.includes('_') ? pointValue : (pointValue * multiplier);
               
               // Add points to the player's score
-              currentPlayer.score = (currentPlayer.score || 0) + pointsToAdd;
-              console.log(`SCORED: ${currentPlayer.name} scored ${pointsToAdd} points, new score: ${currentPlayer.score}, previous: ${initialScore}`);
+              scoreAdded = pointsToAdd;
+              finalScore = initialScore + pointsToAdd;
+              currentPlayer.score = finalScore;
+              console.log(`SCORED: ${currentPlayer.name} scored ${pointsToAdd} points, new score: ${finalScore}, previous: ${initialScore}`);
             } else {
               console.log(`Number ${targetNumber} is closed by all players, no points scored`);
             }
@@ -649,10 +651,15 @@ const GamePage: FC = () => {
                 const basePointValue = targetNumber === 'B' ? 25 : parseInt(targetNumber, 10);
                 pointsScored = basePointValue * extraMarks;
               }
-              currentPlayer.score = (currentPlayer.score || 0) + pointsScored;
+              scoreAdded = pointsScored;
+              finalScore = initialScore + pointsScored;
+              currentPlayer.score = finalScore;
               console.log(`SCORED EXTRA: ${currentPlayer.name} scored ${pointsScored} points from ${extraMarks} extra marks after closing ${targetNumber}`);
             }
           }
+          
+          // CRITICAL FIX: Log the final score calculation for debugging
+          console.log(`SCORE CALCULATION: ${currentPlayer.name} - Initial: ${initialScore}, Added: ${scoreAdded}, Final: ${finalScore}`);
           
           // Update marks for UI display based on the target statuses
           currentPlayer.marks[targetNumber] = newHits;
@@ -708,6 +715,11 @@ const GamePage: FC = () => {
       shouldMoveToNextPlayer = true;
     }
     
+    // CRITICAL FIX: Always update the local state immediately to reflect the latest score
+    // This ensures the score is saved before any player transition
+    console.log(`CRITICAL: Updating local state with ${currentPlayer.name}'s score of ${currentPlayer.score}`);
+    setPlayers(updatedPlayers);
+    
     // Move to next player if needed but only after we've processed the points for this hit
     if (shouldMoveToNextPlayer) {
       console.log("CRITICAL SECTION: Preparing to switch players - ensuring score is saved first");
@@ -739,9 +751,8 @@ const GamePage: FC = () => {
               firestorePlayers[currentPlayerIndex].score = currentPlayer.score;
               
               // Store the final score to pass to moveToNextPlayer
-              const finalScore = currentPlayer.score;
-              
-              // Log the state before saving to Firestore
+              // CRITICAL FIX: Use our calculated finalScore instead of currentPlayer.score
+              // This ensures we use the value we calculated before any async operations
               console.log(`PREPARE SAVE: Setting ${currentPlayer.name}'s final score to ${finalScore} in Firestore`);
               
               // CRITICAL: Use a try/catch block to ensure we can continue even if this update fails
@@ -758,22 +769,18 @@ const GamePage: FC = () => {
               // CRITICAL: Add a small delay before switching player to allow UI to refresh
               console.log("DELAY: Waiting before moving to next player...");
               
-              // Update the local state once more to ensure it has the final score
-              setPlayers(prevPlayers => {
-                const finalState = [...prevPlayers];
-                if (finalState[currentPlayerIndex]) {
-                  // Ensure the score is set correctly in local state
-                  finalState[currentPlayerIndex].score = finalScore;
-                }
-                return finalState;
-              });
+              // CRITICAL FIX: Update the local state immediately with the final score
+              // This ensures the score is preserved in the UI before player transition
+              const finalUpdatedPlayers = [...players];
+              if (finalUpdatedPlayers[currentPlayerIndex]) {
+                finalUpdatedPlayers[currentPlayerIndex].score = finalScore;
+                setPlayers(finalUpdatedPlayers);
+              }
               
               // Now move to next player after ensuring the score is saved
               // Pass the final score directly to avoid closure issues
-              setTimeout(async () => {
-                console.log(`SWITCH: Moving to next player after saving ${currentPlayer.name}'s score of ${finalScore}`);
-                await moveToNextPlayer(finalScore);
-              }, 200);
+              console.log(`SWITCH: Moving to next player after saving ${currentPlayer.name}'s score of ${finalScore}`);
+              await moveToNextPlayer(finalScore);
             } else {
               console.error("ERROR: Player index mismatch between local and Firestore");
               // Still try to move to next player after a delay, passing the score directly
@@ -1355,11 +1362,6 @@ const GamePage: FC = () => {
           </MenuItem>
         </MenuContainer>
       </Header>
-      
-      <GameInfo>
-        <h2>Game #{gameNumber}</h2>
-        <p>{gameActive ? 'Game in progress' : 'Game not started'}</p>
-      </GameInfo>
       
       {gameActive && players.length > 0 && (
         <>
